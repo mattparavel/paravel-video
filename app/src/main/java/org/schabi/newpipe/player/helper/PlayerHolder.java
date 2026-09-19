@@ -49,7 +49,7 @@ public final class PlayerHolder {
     private boolean bound;
     @Nullable private PlayerService playerService;
 
-    private Optional<Player> getPlayer() {
+    public Optional<Player> getPlayer() {
         return Optional.ofNullable(playerService)
                 .flatMap(s -> Optional.ofNullable(s.getPlayer()));
     }

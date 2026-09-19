@@ -2329,12 +2329,17 @@ public final class Player implements PlaybackListener, Listener {
         final android.view.View surface = UIs.get(VideoPlayerUi.class)
                 .map(ui -> (android.view.View) ui.getBinding().surfaceView).orElse(null);
         final android.graphics.Rect bounds = new android.graphics.Rect();
-        if (surface == null || !surface.isShown() || !surface.getLocalVisibleRect(bounds)
+        if (surface == null || !surface.isShown()
+                || surface.getWindowVisibility() != android.view.View.VISIBLE
+                || !surface.getLocalVisibleRect(bounds)
                 || bounds.isEmpty()) {
             return null;
         }
         // Main player windows must be foreground; popup windows can be visible over other apps.
-        if (playerType == PlayerType.MAIN && !surface.hasWindowFocus()) {
+        final boolean nativePip = android.os.Build.VERSION.SDK_INT >= 24
+                && UIs.get(MainPlayerUi.class).flatMap(MainPlayerUi::getParentActivity)
+                .map(android.app.Activity::isInPictureInPictureMode).orElse(false);
+        if (playerType == PlayerType.MAIN && !nativePip && !surface.hasWindowFocus()) {
             return null;
         }
         final int[] screenPosition = new int[2];

@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -80,6 +81,7 @@ import org.schabi.newpipe.local.feed.notifications.NotificationWorker;
 import org.schabi.newpipe.player.Player;
 import org.schabi.newpipe.player.event.OnKeyDownListener;
 import org.schabi.newpipe.player.helper.PlayerHolder;
+import org.schabi.newpipe.player.helper.PictureInPictureController;
 import org.schabi.newpipe.player.playqueue.PlayQueue;
 import org.schabi.newpipe.settings.UpdateSettingsFragment;
 import org.schabi.newpipe.settings.migration.MigrationManager;
@@ -134,6 +136,25 @@ public class MainActivity extends AppCompatActivity {
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor sharedPrefEditor;
+    private final PictureInPictureController pictureInPicture =
+            new PictureInPictureController(this);
+
+    public PictureInPictureController getPictureInPictureController() {
+        return pictureInPicture;
+    }
+
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        pictureInPicture.onUserLeaveHint();
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(final boolean inPip,
+                                             final Configuration configuration) {
+        super.onPictureInPictureModeChanged(inPip, configuration);
+        pictureInPicture.onModeChanged(inPip);
+    }
     /*//////////////////////////////////////////////////////////////////////////
     // Activity's LifeCycle
     //////////////////////////////////////////////////////////////////////////*/
@@ -234,6 +255,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        pictureInPicture.onStop();
         super.onStop();
         sharedPrefEditor.putBoolean(KEY_IS_IN_BACKGROUND, true).apply();
         Log.d(TAG, "App moved to background");
@@ -518,6 +540,7 @@ public class MainActivity extends AppCompatActivity {
         // Change the date format to match the selected language on resume
         Localization.initPrettyTime(Localization.resolvePrettyTime());
         super.onResume();
+        pictureInPicture.onResume();
 
         // Close drawer on return, and don't show animation,
         // so it looks like the drawer isn't open when the user returns to MainActivity

@@ -372,6 +372,12 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
      * next lines of code will enable audio-only playback only if needed
      */
     private void onFragmentStopped() {
+        if (getParentActivity().filter(org.schabi.newpipe.MainActivity.class::isInstance)
+                .map(org.schabi.newpipe.MainActivity.class::cast)
+                .map(activity -> activity.getPictureInPictureController().suppressLegacyPopup())
+                .orElse(false)) {
+            return;
+        }
         if (player.isPlaying() || player.isLoading()) {
             switch (getMinimizeOnExitAction(context)) {
                 case MINIMIZE_ON_EXIT_MODE_BACKGROUND:
@@ -402,6 +408,7 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
                                  final int duration,
                                  final int bufferPercent) {
         super.onUpdateProgress(currentProgress, duration, bufferPercent);
+        updatePictureInPicture();
 
         if (areSegmentsVisible) {
             segmentAdapter.selectSegmentAt(getNearestStreamSegmentPosition(currentProgress));
@@ -415,12 +422,28 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
     public void onPlaying() {
         super.onPlaying();
         checkLandscape();
+        updatePictureInPicture();
+    }
+
+    @Override
+    public void onPaused() {
+        super.onPaused();
+        updatePictureInPicture();
+    }
+
+    private void updatePictureInPicture() {
+        getParentActivity().filter(org.schabi.newpipe.MainActivity.class::isInstance)
+                .map(org.schabi.newpipe.MainActivity.class::cast)
+                .ifPresent(activity -> activity.getPictureInPictureController().update());
     }
 
     @Override
     public void onCompleted() {
         super.onCompleted();
-        if (isFullscreen) {
+        updatePictureInPicture();
+        if (isFullscreen && !getParentActivity().map(activity ->
+                android.os.Build.VERSION.SDK_INT >= 24 && activity.isInPictureInPictureMode())
+                .orElse(false)) {
             toggleFullscreen();
         }
     }
@@ -543,6 +566,7 @@ public final class MainPlayerUi extends VideoPlayerUi implements View.OnLayoutCh
     @Override
     public void onLayoutChange(final View view, final int l, final int t, final int r, final int b,
                                final int ol, final int ot, final int or, final int ob) {
+        updatePictureInPicture();
         if (l != ol || t != ot || r != or || b != ob) {
             // Use a smaller value to be consistent across screen orientations, and to make usage
             // easier. Multiply by 3/4 to ensure the user does not need to move the finger up to the

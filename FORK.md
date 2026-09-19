@@ -7,9 +7,14 @@ Modified September 18, 2026 by Paravel contributors; GPL-3.0-or-later.
 
 - Separate Paravel Video name, icon and application ID (`com.paravel.video.debug`
   for the prototype, `com.paravel.video` for release).
-- Minimize-on-exit defaults to NewPipe's floating popup player. The first use
-  requires Android's “display over other apps” permission. The setting remains
-  user-configurable. This uses NewPipe's existing popup, not Android's native PiP.
+- Leaving the playing app uses Android's native picture-in-picture window on
+  supported devices. Android 12+ auto-entry, source-rectangle hints and seamless
+  resizing animate the existing activity and SurfaceView into the floating window.
+  Expanding it restores the previous fullscreen state without recreating playback.
+  Paused playback does not auto-enter PiP; dismissing PiP pauses playback without
+  spawning a second popup. The minimize-on-exit preference remains configurable.
+  NewPipe's legacy popup remains available explicitly and as a fallback; that
+  legacy overlay requires Android's display-over-other-apps permission.
 - An explicit screengrab request can read the visible video's ID, playback time
   and on-screen bounds through a signature-protected Android provider.
 - tldraw pen consumes that provider, saves a timestamped backlink on the cropped
@@ -38,11 +43,15 @@ Gradle through its checked wrapper. Build with `./gradlew :app:assembleDebug`.
 NewPipe's code-style checks are part of the build. The matching tldraw pen build
 is maintained separately; its source does not incorporate NewPipe player code.
 
-An opt-in live device test, `CaptureIntegrationTest`, opens a public sample video,
-checks the capture contract, then goes home and verifies that the floating player
-keeps playing. Build it with `./gradlew :app:assembleDebugAndroidTest` and run it
-with AndroidJUnitRunner after granting the app's overlay permission. Playback,
-position capture and automatic floating playback passed on the Daylight tablet.
+An opt-in live device test, `CaptureIntegrationTest`, opens a public sample video
+on a device with system PiP, validates timestamp and screen coordinates, then
+repeats Home/expand transitions. It checks continued playback, decoder identity,
+zero SurfaceView destruction, and that paused playback does not auto-enter PiP.
+Build it with `./gradlew :app:assembleDebugAndroidTest` and run its class with
+AndroidJUnitRunner. The test targets Android 12+; older fallback behavior is not
+covered by this device test.
+
+PiP transition reference: https://developer.android.com/develop/ui/views/picture-in-picture
 
 The app retains upstream's license/about screens. Its upstream updater already
 rejects non-upstream signatures. This fork's APKs are distributed separately.

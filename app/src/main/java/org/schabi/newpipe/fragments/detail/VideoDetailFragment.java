@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.graphics.Color;
 import android.graphics.Rect;
@@ -394,6 +395,18 @@ public final class VideoDetailFragment
 
         if (!activity.isChangingConfigurations()) {
             activity.sendBroadcast(new Intent(ACTION_VIDEO_FRAGMENT_STOPPED));
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull final Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        if (binding != null) {
+            binding.getRoot().post(() -> {
+                if (binding != null && isAdded()) {
+                    setHeightThumbnail();
+                }
+            });
         }
     }
 
@@ -1295,9 +1308,11 @@ public final class VideoDetailFragment
             player.UIs().get(MainPlayerUi.class).ifPresent(playerUi -> {
                 // sometimes binding would be null here, even though getView() != null above u.u
                 if (binding != null) {
-                    // prevent from re-adding a view multiple times
-                    playerUi.removeViewFromParent();
-                    binding.playerPlaceholder.addView(playerUi.getBinding().getRoot());
+                    // Keep the SurfaceView attached across resize/fullscreen/PiP transitions.
+                    if (playerUi.getBinding().getRoot().getParent() != binding.playerPlaceholder) {
+                        playerUi.removeViewFromParent();
+                        binding.playerPlaceholder.addView(playerUi.getBinding().getRoot());
+                    }
                     playerUi.setupVideoSurfaceIfNeeded();
                 }
             });
