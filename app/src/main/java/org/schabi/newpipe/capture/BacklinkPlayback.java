@@ -37,7 +37,7 @@ public final class BacklinkPlayback {
         final String id = intent.getStringExtra("video_id");
         final long seconds = intent.getLongExtra("start_seconds", -1);
         if (id == null || !id.matches("[A-Za-z0-9_-]{11}")
-                || seconds < 0 || seconds > 99999999) {
+                || seconds < -1 || seconds > 99999999) {
             return;
         }
         loading.set(null);
@@ -58,7 +58,8 @@ public final class BacklinkPlayback {
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(info -> NavigationHelper.openVideoDetailFragment(activity,
                         activity.getSupportFragmentManager(), info.getServiceId(), url,
-                        info.getName(), new SinglePlayQueue(info, seconds * 1000), false, true),
+                        info.getName(), seconds < 0 ? new SinglePlayQueue(info)
+                                : new SinglePlayQueue(info, seconds * 1000), false, true),
                         error -> {
                             pendingUrl = null;
                             activity.getPictureInPictureController().cancelRequestedEntry();
@@ -79,7 +80,11 @@ public final class BacklinkPlayback {
             // Initial UI attachment can reload the queue. Apply the explicit time after that
             // first timeline is ready, before treating this backlink as fulfilled.
             pendingUrl = null;
-            player.getExoPlayer().seekTo(pendingSeconds * 1000);
+            if (pendingSeconds < 0) {
+                player.getExoPlayer().seekToDefaultPosition();
+            } else {
+                player.getExoPlayer().seekTo(pendingSeconds * 1000);
+            }
             player.play();
         }
     }

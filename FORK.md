@@ -23,7 +23,7 @@ Modified September 18, 2026 by Paravel contributors; GPL-3.0-or-later.
   Crops that miss the popup do not receive a video backlink.
 
 No playback history is exposed through the capture provider. It returns nothing
-for background audio, off-screen main playback, live streams, buffering or an
+for background audio, off-screen main playback, buffering or an
 unavailable player. Capture requests never start playback or the player service. Requests run
 on the player thread and time out after 700 ms. Calls require the signature
 permission `com.paravel.video.CAPTURE_POSITION`; both apps must be signed with the
@@ -33,9 +33,13 @@ same appropriate key. Do not change this permission to normal for OS deployment.
 
 Authority: `${applicationId}.positions`. Method: `capture_position`.
 Version-1 Bundle: `version` (int), `video_id` (string), `seconds` (double),
-`captured_at` (Unix milliseconds), `video_bounds` (int array: left, top, right,
+`captured_at` (Unix milliseconds), `is_live` (boolean, absent means false),
+`video_bounds` (int array: left, top, right,
 bottom in screen pixels). No rows or other provider operations are exposed.
 Clients must compare fresh samples around capture and validate the crop bounds.
+For `is_live=true`, clients must omit the URL timestamp: the player's position
+belongs to a moving live window, not a permanent offset from the video's start.
+These captures still provide the stream's YouTube button.
 
 The same provider accepts `presentation`, returning only a `native_pip` boolean.
 The canvas uses it to choose an activity window below system PiP when reopening
@@ -45,7 +49,8 @@ the drawing overlay. This call has the same signature permission as capture.
 
 The explicit activity alias `org.schabi.newpipe.capture.FloatingVideo` accepts
 action `com.paravel.video.PLAY_IN_PIP`, `video_id` (11-character YouTube ID) and
-`start_seconds` (long). It requires `com.paravel.video.CAPTURE_POSITION` and is the
+`start_seconds` (long; -1 or absent opens the default position/live edge). It
+requires `com.paravel.video.CAPTURE_POSITION` and is the
 only accepted component for this action. Reopening the current video seeks the
 existing player; another video loads a single-item queue at the requested time.
 When PiP is already open, the signature-protected `play_backlink` provider method

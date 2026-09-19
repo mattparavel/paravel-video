@@ -2319,7 +2319,7 @@ public final class Player implements PlaybackListener, Listener {
      */
     @Nullable
     public android.os.Bundle captureVisiblePosition() {
-        if (exoPlayerIsNull() || isLive() || currentMetadata == null
+        if (exoPlayerIsNull() || currentMetadata == null
                 || currentMetadata.getServiceId() != YouTube.getServiceId()
                 || (currentState != STATE_PLAYING && currentState != STATE_PAUSED)
                 || simpleExoPlayer.getPlaybackState() != ExoPlayer.STATE_READY
@@ -2354,6 +2354,9 @@ public final class Player implements PlaybackListener, Listener {
         result.putInt("version", 1);
         result.putString("video_id", id);
         result.putDouble("seconds", position / 1000.0);
+        // A live window's position moves relative to the stream origin. Clients must link to
+        // the stream itself instead of treating this position as a permanent YouTube timestamp.
+        result.putBoolean("is_live", isLive());
         result.putLong("captured_at", System.currentTimeMillis());
         result.putIntArray("video_bounds", new int[]{bounds.left, bounds.top,
                 bounds.right, bounds.bottom});
