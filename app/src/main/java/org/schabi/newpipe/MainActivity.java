@@ -136,11 +136,21 @@ public class MainActivity extends AppCompatActivity {
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor sharedPrefEditor;
+    private final org.schabi.newpipe.capture.BacklinkPlayback backlinkPlayback =
+            new org.schabi.newpipe.capture.BacklinkPlayback(this);
     private final PictureInPictureController pictureInPicture =
             new PictureInPictureController(this);
 
     public PictureInPictureController getPictureInPictureController() {
         return pictureInPicture;
+    }
+
+    public void applyBacklinkSeek() {
+        backlinkPlayback.applyPendingSeek();
+    }
+
+    public void openFloatingBacklink(final Intent intent) {
+        backlinkPlayback.open(intent);
     }
 
     @Override
@@ -526,6 +536,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        backlinkPlayback.destroy();
         super.onDestroy();
         if (!isChangingConfigurations()) {
             StateSaver.clearStateFiles();
@@ -787,7 +798,9 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "initFragments() called");
         }
         StateSaver.clearStateFiles();
-        if (getIntent() != null && getIntent().hasExtra(Constants.KEY_LINK_TYPE)) {
+        if (getIntent() != null && (getIntent().hasExtra(Constants.KEY_LINK_TYPE)
+                || org.schabi.newpipe.capture.BacklinkPlayback.ACTION
+                        .equals(getIntent().getAction()))) {
             // When user watch a video inside popup and then tries to open the video in main player
             // while the app is closed he will see a blank fragment on place of kiosk.
             // Let's open it first
@@ -829,6 +842,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleIntent(final Intent intent) {
         try {
+            if (org.schabi.newpipe.capture.BacklinkPlayback.ACTION.equals(intent.getAction())) {
+                backlinkPlayback.open(intent);
+                return;
+            }
             if (DEBUG) {
                 Log.d(TAG, "handleIntent() called with: intent = [" + intent + "]");
             }

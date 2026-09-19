@@ -18,12 +18,13 @@ Modified September 18, 2026 by Paravel contributors; GPL-3.0-or-later.
 - An explicit screengrab request can read the visible video's ID, playback time
   and on-screen bounds through a signature-protected Android provider.
 - tldraw pen consumes that provider, saves a timestamped backlink on the cropped
-  image, and opens it in its existing movable/resizable/rotatable in-app player.
+  image, and opens it at the saved time in this app's native PiP window. The same
+  tldraw canvas stays visible and interactive underneath the system player.
   Crops that miss the popup do not receive a video backlink.
 
 No playback history is exposed through the capture provider. It returns nothing
 for background audio, off-screen main playback, live streams, buffering or an
-unavailable player. It never starts playback or the player service. Requests run
+unavailable player. Capture requests never start playback or the player service. Requests run
 on the player thread and time out after 700 ms. Calls require the signature
 permission `com.paravel.video.CAPTURE_POSITION`; both apps must be signed with the
 same appropriate key. Do not change this permission to normal for OS deployment.
@@ -35,6 +36,25 @@ Version-1 Bundle: `version` (int), `video_id` (string), `seconds` (double),
 `captured_at` (Unix milliseconds), `video_bounds` (int array: left, top, right,
 bottom in screen pixels). No rows or other provider operations are exposed.
 Clients must compare fresh samples around capture and validate the crop bounds.
+
+The same provider accepts `presentation`, returning only a `native_pip` boolean.
+The canvas uses it to choose an activity window below system PiP when reopening
+the drawing overlay. This call has the same signature permission as capture.
+
+## Timestamped backlink entry
+
+The explicit activity alias `org.schabi.newpipe.capture.FloatingVideo` accepts
+action `com.paravel.video.PLAY_IN_PIP`, `video_id` (11-character YouTube ID) and
+`start_seconds` (long). It requires `com.paravel.video.CAPTURE_POSITION` and is the
+only accepted component for this action. Reopening the current video seeks the
+existing player; another video loads a single-item queue at the requested time.
+When PiP is already open, the signature-protected `play_backlink` provider method
+accepts those same extras and returns `accepted=true` after handing them to the
+existing activity. If no PiP activity exists, it returns false and the client uses
+the activity alias. This avoids a task transition when jumping between backlinks.
+Android 13+ clients use `ActivityOptions.makeLaunchIntoPip`; older supported
+systems enter PiP once playback is ready. No external-player preference or saved
+playback position should override an explicit backlink's requested time.
 
 ## Build and distribution
 

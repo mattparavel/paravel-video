@@ -40,17 +40,18 @@ public final class CaptureProvider extends ContentProvider {
     @Override
     public Bundle call(final String method, final String arg, final Bundle extras) {
         getContext().enforceCallingOrSelfPermission(PERMISSION, "Capture permission required");
-        if (!"capture_position".equals(method)) {
+        if (!"capture_position".equals(method) && !"presentation".equals(method)
+                && !"play_backlink".equals(method)) {
             return null;
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            return snapshot();
+            return snapshot(method, extras);
         }
         final AtomicReference<Bundle> result = new AtomicReference<>();
         final CountDownLatch done = new CountDownLatch(1);
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
-                result.set(snapshot());
+                result.set(snapshot(method, extras));
             } finally {
                 done.countDown();
             }
@@ -63,10 +64,37 @@ public final class CaptureProvider extends ContentProvider {
         }
     }
 
-    private static Bundle snapshot() {
+    private static Bundle snapshot(final String method, final Bundle extras) {
         final PlayerService current = service.get();
         final Player player = current == null ? null : current.getPlayer();
         try {
+            if ("play_backlink".equals(method)) {
+                final Bundle result = new Bundle();
+                final org.schabi.newpipe.MainActivity activity = player == null ? null
+                        : player.UIs()
+                        .get(org.schabi.newpipe.player.ui.MainPlayerUi.class)
+                        .flatMap(org.schabi.newpipe.player.ui.MainPlayerUi::getParentActivity)
+                        .filter(org.schabi.newpipe.MainActivity.class::isInstance)
+                        .map(org.schabi.newpipe.MainActivity.class::cast)
+                        .orElse(null);
+                if (activity != null && extras != null && android.os.Build.VERSION.SDK_INT >= 24
+                        && activity.isInPictureInPictureMode()) {
+                    activity.openFloatingBacklink(new android.content.Intent(
+                            BacklinkPlayback.ACTION)
+                            .setClassName(activity, "org.schabi.newpipe.capture.FloatingVideo")
+                            .putExtras(extras));
+                    result.putBoolean("accepted", true);
+                }
+                return result;
+            }
+            if ("presentation".equals(method)) {
+                final Bundle state = new Bundle();
+                state.putBoolean("native_pip", player != null && android.os.Build.VERSION.SDK_INT
+                        >= 24 && player.UIs().get(org.schabi.newpipe.player.ui.MainPlayerUi.class)
+                        .flatMap(org.schabi.newpipe.player.ui.MainPlayerUi::getParentActivity)
+                        .map(android.app.Activity::isInPictureInPictureMode).orElse(false));
+                return state;
+            }
             return player == null ? null : player.captureVisiblePosition();
         } catch (final RuntimeException error) {
             return null;

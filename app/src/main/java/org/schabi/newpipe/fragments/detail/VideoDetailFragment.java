@@ -206,6 +206,7 @@ public final class VideoDetailFragment
     int lastStableBottomSheetState = BottomSheetBehavior.STATE_EXPANDED;
     @State
     protected boolean autoPlayEnabled = true;
+    private boolean forceNativePlayback;
     private boolean forceFullscreen = false;
 
     @Nullable
@@ -1124,6 +1125,10 @@ public final class VideoDetailFragment
      *                                       in landscape and screen orientation is locked
      */
     public void openVideoPlayer(final boolean directlyFullscreenIfApplicable) {
+        if (forceNativePlayback) {
+            openMainPlayer();
+            return;
+        }
         if (directlyFullscreenIfApplicable
                 && !DeviceUtils.isLandscape(requireContext())
                 && PlayerHelper.globalScreenOrientationLocked(requireContext())) {
@@ -1253,6 +1258,10 @@ public final class VideoDetailFragment
         this.autoPlayEnabled = autoPlay;
     }
 
+    public void setForceNativePlayback(final boolean force) {
+        forceNativePlayback = force;
+    }
+
     private void startOnExternalPlayer(@NonNull final Context context,
                                        @NonNull final StreamInfo info,
                                        @NonNull final Stream selectedStream) {
@@ -1281,6 +1290,9 @@ public final class VideoDetailFragment
     // This method overrides default behaviour when setAutoPlay() is called.
     // Don't auto play if the user selected an external player or disabled it in settings
     private boolean isAutoplayEnabled() {
+        if (forceNativePlayback) {
+            return autoPlayEnabled;
+        }
         return autoPlayEnabled
                 && !isExternalPlayerEnabled()
                 && (!isPlayerAvailable() || player.videoPlayerSelected())

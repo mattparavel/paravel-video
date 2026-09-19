@@ -25,6 +25,15 @@ public final class PictureInPictureController {
     private PictureInPictureParams params;
     private Rect lastBounds;
     private Rational lastAspect;
+    private String requestedUrl;
+
+    public void requestEntry(final String url) {
+        requestedUrl = url;
+    }
+
+    public void cancelRequestedEntry() {
+        requestedUrl = null;
+    }
 
     public PictureInPictureController(final MainActivity activity) {
         this.activity = activity;
@@ -37,6 +46,7 @@ public final class PictureInPictureController {
     }
 
     public void update() {
+        activity.applyBacklinkSeek();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O
                 || !activity.getPackageManager()
                 .hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
@@ -47,15 +57,19 @@ public final class PictureInPictureController {
         final Rect bounds = new Rect();
         final boolean canEnter = ui != null && player != null
                 && !activity.isFinishing() && (player.isPlaying() || player.isLoading())
-                && PlayerHelper.getMinimizeOnExitAction(activity)
-                == PlayerHelper.MinimizeMode.MINIMIZE_ON_EXIT_MODE_POPUP
+                && (requestedUrl != null || PlayerHelper.getMinimizeOnExitAction(activity)
+                == PlayerHelper.MinimizeMode.MINIMIZE_ON_EXIT_MODE_POPUP)
                 && ui.getBinding().surfaceView.getGlobalVisibleRect(bounds)
                 && bounds.width() > 0 && bounds.height() > 0;
         // The system owns PiP bounds while pinned. Preserve the full-size animation hint.
         if (activity.isInPictureInPictureMode()) {
             if (ui != null) {
+                if (!pipLayoutApplied) {
+                    onModeChanged(true);
+                }
                 ui.hideControls(0, 0);
             }
+            requestedUrl = null;
             return;
         }
         final Rational aspect = canEnter ? new Rational(Math.round(Math.max(0.42f,
@@ -63,6 +77,7 @@ public final class PictureInPictureController {
                 : new Rational(16, 9);
         if (params != null && enabled == canEnter && bounds.equals(lastBounds)
                 && aspect.equals(lastAspect)) {
+            enterIfRequested(player);
             return;
         }
         enabled = canEnter;
@@ -78,6 +93,15 @@ public final class PictureInPictureController {
         }
         params = builder.build();
         activity.setPictureInPictureParams(params);
+        enterIfRequested(player);
+    }
+
+    private void enterIfRequested(final Player player) {
+        if (enabled && requestedUrl != null && player != null
+                && requestedUrl.equals(player.getVideoUrl()) && player.isPlaying()) {
+            requestedUrl = null;
+            activity.enterPictureInPictureMode(params);
+        }
     }
 
     public void onUserLeaveHint() {

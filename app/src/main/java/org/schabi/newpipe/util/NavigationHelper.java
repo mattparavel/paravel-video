@@ -413,10 +413,25 @@ public final class NavigationHelper {
                                                @NonNull final String title,
                                                @Nullable final PlayQueue playQueue,
                                                final boolean switchingPlayers) {
+        openVideoDetailFragment(context, fragmentManager, serviceId, url, title, playQueue,
+                switchingPlayers, false);
+    }
+
+    @SuppressWarnings("ParameterNumber")
+    public static void openVideoDetailFragment(@NonNull final Context context,
+                                               @NonNull final FragmentManager fragmentManager,
+                                               final int serviceId,
+                                               @Nullable final String url,
+                                               @NonNull final String title,
+                                               @Nullable final PlayQueue playQueue,
+                                               final boolean switchingPlayers,
+                                               final boolean forcePlay) {
 
         final boolean autoPlay;
         @Nullable final PlayerType playerType = PlayerHolder.getInstance().getType();
-        if (playerType == null) {
+        if (forcePlay) {
+            autoPlay = true;
+        } else if (playerType == null) {
             // no player open
             autoPlay = PlayerHelper.isAutoplayAllowedByUser(context);
         } else if (switchingPlayers) {
@@ -432,6 +447,7 @@ public final class NavigationHelper {
 
         final RunnableWithVideoDetailFragment onVideoDetailFragmentReady = detailFragment -> {
             expandMainPlayer(detailFragment.requireActivity());
+            detailFragment.setForceNativePlayback(forcePlay);
             detailFragment.setAutoPlay(autoPlay);
             if (switchingPlayers && TextUtils.equals(detailFragment.getUrl(), url)) {
                 // Situation when user switches from players to main player. All needed data is
@@ -458,6 +474,7 @@ public final class NavigationHelper {
             // See VideoDetailFragment.wasCleared() and its usage in doInitialLoadLogic().
             final VideoDetailFragment instance = VideoDetailFragment
                     .getInstance(serviceId, null, title, playQueue);
+            instance.setForceNativePlayback(forcePlay);
             instance.setAutoPlay(autoPlay);
 
             defaultTransaction(fragmentManager)
