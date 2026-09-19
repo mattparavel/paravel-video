@@ -1,3 +1,12 @@
+# Paravel Video
+
+Experimental, independently maintained fork of [NewPipe](https://github.com/TeamNewPipe/NewPipe),
+based on release **v0.29.1**. Not an official NewPipe release or a Google product.
+See [FORK.md](FORK.md) for changes, build instructions and the capture interface.
+The upstream project, copyright notices and GPL-3.0-or-later license are retained below.
+
+---
+
 <p align="center"><a href="https://newpipe.net"><img src="assets/new_pipe_icon_5.png" width="150"></a></p> 
 <h2 align="center"><b>NewPipe</b></h2>
 <h4 align="center">A libre lightweight streaming front-end for Android.</h4>

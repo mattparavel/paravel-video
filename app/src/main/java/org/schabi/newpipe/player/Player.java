@@ -2313,6 +2313,48 @@ public final class Player implements PlaybackListener, Listener {
     //////////////////////////////////////////////////////////////////////////*/
     //region Getters
 
+    /**
+     * Paravel capture contract: called on the main thread, only for visible, ready video.
+     * @return a fresh video position and screen bounds, or null when no video can be captured
+     */
+    @Nullable
+    public android.os.Bundle captureVisiblePosition() {
+        if (exoPlayerIsNull() || isLive() || currentMetadata == null
+                || currentMetadata.getServiceId() != YouTube.getServiceId()
+                || (currentState != STATE_PLAYING && currentState != STATE_PAUSED)
+                || simpleExoPlayer.getPlaybackState() != ExoPlayer.STATE_READY
+                || simpleExoPlayer.isPlayingAd()) {
+            return null;
+        }
+        final android.view.View surface = UIs.get(VideoPlayerUi.class)
+                .map(ui -> (android.view.View) ui.getBinding().surfaceView).orElse(null);
+        final android.graphics.Rect bounds = new android.graphics.Rect();
+        if (surface == null || !surface.isShown() || !surface.getLocalVisibleRect(bounds)
+                || bounds.isEmpty()) {
+            return null;
+        }
+        // Main player windows must be foreground; popup windows can be visible over other apps.
+        if (playerType == PlayerType.MAIN && !surface.hasWindowFocus()) {
+            return null;
+        }
+        final int[] screenPosition = new int[2];
+        surface.getLocationOnScreen(screenPosition);
+        bounds.offset(screenPosition[0], screenPosition[1]);
+        final String id = android.net.Uri.parse(getVideoUrl()).getQueryParameter("v");
+        final long position = simpleExoPlayer.getCurrentPosition();
+        if (id == null || !id.matches("[A-Za-z0-9_-]{11}") || position < 0) {
+            return null;
+        }
+        final android.os.Bundle result = new android.os.Bundle();
+        result.putInt("version", 1);
+        result.putString("video_id", id);
+        result.putDouble("seconds", position / 1000.0);
+        result.putLong("captured_at", System.currentTimeMillis());
+        result.putIntArray("video_bounds", new int[]{bounds.left, bounds.top,
+                bounds.right, bounds.bottom});
+        return result;
+    }
+
     public Optional<StreamInfo> getCurrentStreamInfo() {
         return Optional.ofNullable(currentMetadata).flatMap(MediaItemTag::getMaybeStreamInfo);
     }

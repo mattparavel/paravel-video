@@ -86,6 +86,7 @@ public final class PlayerService extends MediaBrowserServiceCompat {
     @Override
     public void onCreate() {
         super.onCreate();
+        org.schabi.newpipe.capture.CaptureProvider.attach(this);
 
         if (DEBUG) {
             Log.d(TAG, "onCreate() called");
@@ -205,6 +206,7 @@ public final class PlayerService extends MediaBrowserServiceCompat {
 
     @Override
     public void onDestroy() {
+        org.schabi.newpipe.capture.CaptureProvider.detach(this);
         if (DEBUG) {
             Log.d(TAG, "destroy() called");
         }

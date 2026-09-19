@@ -238,7 +238,8 @@ public final class PlayerHelper {
     @MinimizeMode
     public static int getMinimizeOnExitAction(@NonNull final Context context) {
         final String action = getPreferences(context)
-                .getString(context.getString(R.string.minimize_on_exit_key), "");
+                .getString(context.getString(R.string.minimize_on_exit_key),
+                        context.getString(R.string.minimize_on_exit_popup_key));
         if (action.equals(context.getString(R.string.minimize_on_exit_popup_key))) {
             return MINIMIZE_ON_EXIT_MODE_POPUP;
         } else if (action.equals(context.getString(R.string.minimize_on_exit_none_key))) {
